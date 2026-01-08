@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spelling Practice – Chinecherem Erinne</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+:root{
+ --primary:#1e3a8a;
+ --secondary:#2563eb;
+ --accent:#0f766e;
+ --card:#ffffff;
+ --muted:#e5e7eb;
+ --highlight:#fde68a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+ font-family:"Segoe UI",system-ui,sans-serif;
+ background:linear-gradient(135deg,#e0e7ff,#f8fafc);
+ padding:14px;
+}
+
+.container{
+ max-width:950px;
+ margin:auto;
+ background:var(--card);
+ padding:26px;
+ border-radius:18px;
+ box-shadow:0 12px 35px rgba(0,0,0,.12);
+}
+
+h1,h2,h3{text-align:center;color:var(--primary);margin-bottom:14px}
+
+.hidden{display:none}
+
+/* NAV */
+.nav{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:14px;
+ margin-bottom:22px;
+}
+
+.nav button{
+ padding:12px;
+ border-radius:14px;
+ border:none;
+ font-weight:700;
+ color:#fff;
+ cursor:pointer;
+ box-shadow:0 6px 0 rgba(0,0,0,.25);
+}
+
+.nav button:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.nav button:nth-child(1){background:#2563eb}
+.nav button:nth-child(2){background:#0f766e}
+.nav button:nth-child(3){background:#7c3aed}
+
+/* INPUT */
+input{
+ width:100%;
+ padding:14px;
+ border-radius:14px;
+ border:2px solid var(--muted);
+ font-size:1rem;
+ margin:18px 0;
+}
+
+/* BUTTONS */
+button.action{
+ padding:12px 22px;
+ border-radius:14px;
+ border:none;
+ font-weight:700;
+ color:#fff;
+ cursor:pointer;
+ box-shadow:0 6px 0 rgba(0,0,0,.25);
+}
+
+button.action:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.primary{background:var(--secondary)}
+.accent{background:var(--accent)}
+.purple{background:#7c3aed}
+
+.controls{
+ display:flex;
+ justify-content:center;
+ gap:14px;
+ flex-wrap:wrap;
+ margin-top:14px;
+}
+
+.feedback{text-align:center;font-size:1.1rem;font-weight:700;margin-top:14px}
+
+/* SCORE */
+.score-box{
+ text-align:center;
+ font-size:2.4rem;
+ font-weight:900;
+ color:var(--accent);
+ margin:24px 0;
+}
+
+.missed{
+ background:#eef2ff;
+ padding:18px;
+ border-radius:16px;
+}
+
+/* ANALYTICS */
+.analytics{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:16px;
+ margin-top:22px;
+}
+
+.analytics div{
+ background:#eef2ff;
+ padding:20px;
+ border-radius:16px;
+ text-align:center;
+ font-weight:700;
+}
+
+/* TABLE */
+table{
+ width:100%;
+ border-collapse:collapse;
+ margin-top:18px;
+}
+
+th,td{
+ padding:12px;
+ border-bottom:1px solid var(--muted);
+ text-align:center;
+}
+
+th{background:#e0e7ff}
+
+.confetti{
+ position:fixed;
+ inset:0;
+ pointer-events:none;
+ z-index:9999;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Spelling Practice</h1>
+
+<div class="nav">
+ <button onclick="showTab('practice')">Spelling</button>
+ <button onclick="showTab('analytics')">Progress Analytics</button>
+ <button onclick="showTab('results')">Previous Results</button>
+</div>
+
+<!-- PRACTICE -->
+<div id="practiceTab">
+ <h3>Student: Chinecherem Erinne</h3>
+
+ <input id="answer" placeholder="Type the spelling" autocorrect="off" spellcheck="false">
+
+ <div class="controls">
+  <button class="action primary" onclick="playWord()">Word</button>
+  <button class="action accent" onclick="playMeaning()">Meaning</button>
+  <button class="action purple" onclick="playSentence()">Sentence</button>
+ </div>
+
+ <div class="controls">
+  <button class="action accent" onclick="submitAnswer()">Submit</button>
+ </div>
+
+ <div class="feedback" id="feedback"></div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="analyticsTab" class="hidden">
+ <h2>Progress Analytics</h2>
+ <div class="analytics">
+  <div>Attempts<br><span id="totalAttempts">0</span></div>
+  <div>Best Score<br><span id="bestScore">0%</span></div>
+  <div>Average<br><span id="avgScore">0%</span></div>
+ </div>
+</div>
+
+<!-- RESULTS -->
+<div id="resultsTab" class="hidden">
+ <h2>Previous Results</h2>
+ <table>
+  <thead>
+   <tr><th>Date</th><th>Score</th><th>Percentage</th></tr>
+  </thead>
+  <tbody id="resultsTable"></tbody>
+ </table>
+ <div class="controls">
+  <button class="action primary" onclick="retake()">Retake Spelling</button>
+ </div>
+</div>
+
+<div class="score-box hidden" id="finalScore"></div>
+<div class="missed hidden" id="missed"></div>
+
+</div>
+
+<canvas id="confettiCanvas" class="confetti hidden"></canvas>
+
+<script>
+const STUDENT_NAME="Chinecherem Erinne";
+
+/* Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyDHqc8J-YGIPtHPukHIKPcD1ctdBkUSDfg",
+  authDomain: "project3-c23f6.firebaseapp.com",
+  databaseURL: "https://project3-c23f6-default-rtdb.firebaseio.com",
+  projectId: "project3-c23f6",
+  storageBucket: "project3-c23f6.appspot.com",
+  messagingSenderId: "983493979084",
+  appId: "1:983493979084:web:2db0b954c965660edf0b69"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+// Get a reference to the database
+const db = firebase.database();
+
+/* WORDS */
+const words = [
+  {word:"abandon", meaning:"to leave behind", sentence:"He had to abandon the broken car by the roadside."},
+  {word:"absorb", meaning:"to take in or soak up", sentence:"The sponge can absorb a lot of water."},
+  {word:"abstract", meaning:"existing in thought but not physical", sentence:"She drew an abstract painting with bright colors."},
+  {word:"accident", meaning:"an unexpected event", sentence:"He slipped and had a minor accident."},
+  {word:"accurate", meaning:"correct or exact", sentence:"The measurement must be accurate."},
+  {word:"achieve", meaning:"to succeed in doing something", sentence:"She worked hard to achieve her goals."},
+  {word:"adaptable", meaning:"able to adjust to new situations", sentence:"Dogs are very adaptable pets."},
+  {word:"adventure", meaning:"an exciting experience", sentence:"They went on a camping adventure."},
+  {word:"afraid", meaning:"feeling fear", sentence:"The child was afraid of the dark."},
+  {word:"ancestors", meaning:"family members from the past", sentence:"We learned about our ancestors in history class."},
+  {word:"annoying", meaning:"causing irritation", sentence:"The buzzing fly was very annoying."},
+  {word:"anticipate", meaning:"to expect or look forward to", sentence:"We anticipate good weather tomorrow."},
+  {word:"anxious", meaning:"worried or nervous", sentence:"She felt anxious before the test."},
+  {word:"approve", meaning:"to agree with or accept", sentence:"The teacher will approve the project."},
+  {word:"architect", meaning:"a person who designs buildings", sentence:"The architect designed a beautiful house."},
+  {word:"arrange", meaning:"to put in order", sentence:"Please arrange the books on the shelf."},
+  {word:"artificial", meaning:"made by humans, not natural", sentence:"The flowers are artificial but look real."},
+  {word:"assign", meaning:"to give a task", sentence:"The teacher will assign homework."},
+  {word:"astonishing", meaning:"very surprising", sentence:"The magician performed an astonishing trick."},
+  {word:"attempt", meaning:"to try", sentence:"She will attempt to climb the hill."},
+  {word:"attentive", meaning:"paying close attention", sentence:"The students were attentive in class."},
+  {word:"attract", meaning:"to draw attention or interest", sentence:"The flowers attract many bees."},
+  {word:"available", meaning:"ready to use or obtain", sentence:"The library books are available for borrowing."},
+  {word:"average", meaning:"typical or normal", sentence:"His score was above average."},
+  {word:"awkward", meaning:"not comfortable or easy", sentence:"He felt awkward in the crowded room."},
+  {word:"bachelor", meaning:"a man who is not married", sentence:"He is a bachelor living in the city."},
+  {word:"balance", meaning:"to keep steady", sentence:"She tried to balance on one foot."},
+  {word:"barrier", meaning:"something that blocks progress", sentence:"The fence was a barrier to the field."},
+  {word:"behavior", meaning:"the way someone acts", sentence:"Good behavior is rewarded at school."},
+  {word:"beneficial", meaning:"helpful or good", sentence:"Exercise is beneficial for health."},
+  {word:"bravery", meaning:"courage", sentence:"His bravery saved the kitten."},
+  {word:"boundary", meaning:"a line that marks limits", sentence:"The river is the boundary between the towns."},
+  {word:"calculate", meaning:"to find a number by math", sentence:"We need to calculate the total cost."},
+  {word:"capacity", meaning:"the maximum amount something can hold", sentence:"The bottle has a capacity of one liter."},
+  {word:"celebrate", meaning:"to honor an event", sentence:"We celebrate birthdays with cake."},
+  {word:"challenge", meaning:"something difficult", sentence:"Climbing the hill was a challenge."},
+  {word:"character", meaning:"a person in a story", sentence:"The main character is very brave."},
+  {word:"circumstance", meaning:"a condition or fact", sentence:"Under the circumstance, we must leave early."},
+  {word:"civilian", meaning:"a person not in the military", sentence:"Civilians were evacuated from the area."},
+  {word:"collapse", meaning:"to fall down suddenly", sentence:"The old building began to collapse."},
+  {word:"colonel", meaning:"a military officer", sentence:"The colonel inspected the troops."},
+  {word:"committee", meaning:"a group of people chosen for a task", sentence:"The committee met to discuss the rules."},
+  {word:"communicate", meaning:"to share information", sentence:"We communicate using email and phone."},
+  {word:"community", meaning:"a group living together", sentence:"The community held a clean-up day."},
+  {word:"compare", meaning:"to examine similarities and differences", sentence:"Compare the two paintings carefully."},
+  {word:"competition", meaning:"a contest or race", sentence:"The school held a competition for math."},
+  {word:"complain", meaning:"to express dissatisfaction", sentence:"She began to complain about the noise."},
+  {word:"complex", meaning:"having many parts", sentence:"The machine is complex but works well."},
+  {word:"concern", meaning:"a worry or interest", sentence:"The teacher showed concern for the students."},
+  {word:"confident", meaning:"sure of oneself", sentence:"He felt confident about his answer."},
+  {word:"consequence", meaning:"result of an action", sentence:"Every action has a consequence."},
+  {word:"consider", meaning:"to think about", sentence:"Consider your options carefully."}
+];
+
+
+let i=0,score=0,missed=[];
+const synth=speechSynthesis;
+
+function speak(t){synth.speak(new SpeechSynthesisUtterance(t))}
+
+speak("Welcome, Chinecherem Erinne! Listen carefully and spell each word you hear. You can use the other buttons to learn more about the spelling word—its meaning, how it’s used in a sentence, and to distinguish it from words that sound the same but have different meanings.");
+
+function playWord(){speak(words[i].word)}
+function playMeaning(){speak(words[i].meaning)}
+function playSentence(){speak(words[i].sentence)}
+
+function submitAnswer(){
+ const a=answer.value.trim().toLowerCase();
+ if(a===words[i].word){score++;feedback.textContent="Correct"}
+ else{missed.push(words[i].word);feedback.textContent="Correct word: "+words[i].word}
+ answer.value="";
+ i++;
+ if(i<words.length)setTimeout(()=>{feedback.textContent="";playWord()},900);
+ else endGame();
+}
+
+function endGame(){
+ const pct=Math.round(score/words.length*100);
+ finalScore.textContent=`Score: ${pct}%`;
+ finalScore.classList.remove("hidden");
+ missed.innerHTML=missed.length?`Missed:<ul>${missed.map(w=>`<li>${w}</li>`).join("")}</ul>`:"Perfect score";
+ missed.classList.remove("hidden");
+
+ db.ref("results").push({
+  student:STUDENT_NAME,
+  type:"spelling",
+  score,
+  total:words.length,
+  percentage:pct,
+  timestamp:Date.now(),
+  date:new Date().toLocaleString()
+ });
+
+ loadResults();
+ launchConfetti();
+}
+
+function showTab(t){
+ ["practice","analytics","results"].forEach(x=>{
+  document.getElementById(x+"Tab").classList.add("hidden");
+ });
+ document.getElementById(t+"Tab").classList.remove("hidden");
+}
+
+function retake(){location.reload()}
+
+/* LOAD RESULTS */
+function loadResults(){
+ db.ref("results").once("value",snap=>{
+  let data=Object.values(snap.val()||{}).filter(r=>r.student===STUDENT_NAME && r.type==="spelling");
+  resultsTable.innerHTML="";
+  let sum=0,best=0;
+  data.forEach(r=>{
+   sum+=r.percentage;best=Math.max(best,r.percentage);
+   resultsTable.innerHTML+=`<tr><td>${r.date}</td><td>${r.score}/${r.total}</td><td>${r.percentage}%</td></tr>`;
+  });
+  totalAttempts.textContent=data.length;
+  bestScore.textContent=best+"%";
+  avgScore.textContent=data.length?Math.round(sum/data.length)+"%":"0%";
+ });
+}
+loadResults();
+
+/* CONFETTI */
+function launchConfetti(){
+ const c=confettiCanvas,ctx=c.getContext("2d");
+ c.width=innerWidth;c.height=innerHeight;
+ c.classList.remove("hidden");
+ const p=[...Array(200)].map(()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:5,d:2+Math.random()*3,color:`hsl(${Math.random()*360},100%,50%)`}));
+ setInterval(()=>{ctx.clearRect(0,0,c.width,c.height);p.forEach(o=>{ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,2*Math.PI);ctx.fillStyle=o.color;ctx.fill();o.y+=o.d;if(o.y>c.height)o.y=0})},20);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reading Comprehension – Chinecherem Erinne</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+:root{
+ --primary:#1e3a8a;
+ --secondary:#2563eb;
+ --accent:#0f766e;
+ --card:#ffffff;
+ --muted:#e5e7eb;
+ --highlight:#fde68a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+ font-family:"Segoe UI",system-ui,sans-serif;
+ background:linear-gradient(135deg,#e0e7ff,#f8fafc);
+ padding:14px;
+}
+
+.container{
+ max-width:950px;
+ margin:auto;
+ background:var(--card);
+ padding:22px;
+ border-radius:18px;
+ box-shadow:0 12px 35px rgba(0,0,0,.12);
+}
+
+h1{
+ text-align:center;
+ color:var(--primary);
+ font-size:1.9rem;
+ margin-bottom:14px;
+}
+
+/* Navigation */
+.nav{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:10px;
+ margin-bottom:20px;
+}
+
+.nav button{
+ padding:10px;
+ font-size:.9rem;
+ border-radius:12px;
+ border:none;
+ color:#fff;
+ font-weight:600;
+ cursor:pointer;
+}
+
+.nav button:nth-child(1){background:#2563eb}
+.nav button:nth-child(2){background:#0f766e}
+.nav button:nth-child(3){background:#7c3aed}
+
+button:active{transform:scale(.97)}
+
+/* Dropdowns */
+.select-wrap{
+ max-width:240px;
+ margin:0 auto 10px;
+ text-align:center;
+ font-weight:600;
+}
+
+select{
+ width:100%;
+ padding:8px 10px;
+ font-size:.9rem;
+ border-radius:10px;
+ border:2px solid var(--muted);
+ background:#fff;
+}
+
+/* Passage */
+.subtitle{
+ font-size:1.6rem;
+ text-align:center;
+ font-weight:600;
+ margin:24px 0;
+ color:#0f172a;
+ line-height:2;
+}
+
+.subtitle span{
+ padding:2px 4px;
+ border-radius:4px;
+}
+button{
+ padding:14px;
+ font-size:16px;
+ border-radius:12px;
+ border:none;
+ background:linear-gradient(to bottom,#3b82f6,#1e40af);
+ color:#fff;
+ font-weight:600;
+ cursor:pointer;
+}
+.subtitle span.active{
+ background:var(--highlight);
+}
+
+/* Read button */
+.read-btn{
+ display:block;
+ margin:0 auto;
+ padding:10px 18px;
+ font-size:.9rem;
+ background:#2563eb;
+ color:#fff;
+ border:none;
+ border-radius:12px;
+ font-weight:600;
+ cursor:pointer;
+}
+
+/* Question card */
+.question-card{
+ border:2px solid var(--secondary);
+ border-radius:18px;
+ padding:18px;
+ margin-top:18px;
+ background:#f8fafc;
+}
+
+.question-card h3{
+ font-size:1.1rem;
+ margin-bottom:14px;
+}
+
+.option{
+ display:flex;
+ gap:10px;
+ padding:12px;
+ background:#fff;
+ border-radius:14px;
+ border:2px solid var(--muted);
+ cursor:pointer;
+ font-size:.95rem;
+ margin-bottom:10px;
+}
+
+.option input{margin-top:4px}
+
+.controls{
+ display:flex;
+ justify-content:flex-end;
+ margin-top:14px;
+}
+
+.controls button{
+ padding:10px 16px;
+ font-size:.9rem;
+ background:#0f766e;
+ color:#fff;
+ border:none;
+ border-radius:12px;
+ font-weight:600;
+}
+
+/* Score */
+.score-box{
+ text-align:center;
+ font-size:2.2rem;
+ font-weight:900;
+ margin:30px 0;
+ color:var(--accent);
+}
+
+/* Analytics */
+.analytics{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:14px;
+ margin-top:20px;
+}
+
+.analytics div{
+ background:#eef2ff;
+ padding:18px;
+ border-radius:16px;
+ text-align:center;
+}
+
+/* Table */
+table{
+ width:100%;
+ border-collapse:collapse;
+ margin-top:16px;
+ font-size:.9rem;
+}
+
+th,td{
+ padding:10px;
+ border-bottom:1px solid var(--muted);
+ text-align:center;
+}
+
+th{background:#e0e7ff}
+
+.hidden{display:none}
+
+@media(max-width:700px){
+ .nav{grid-template-columns:1fr}
+ .subtitle{font-size:1.3rem}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>Reading Comprehension - The Hidden Cave</h1>
+
+<div class="nav">
+<button onclick="showTab('reading')">Reading</button>
+<button onclick="showTab('analytics')">Progress Analytics</button>
+<button onclick="showTab('results')">Previous Results</button>
+</div>
+
+<div id="readingTab">
+<div class="select-wrap">
+Voice
+<select id="voiceSelect"></select>
+</div>
+
+<div class="select-wrap">
+Difficulty
+<select id="difficultySelect">
+<option value="easy">Easy</option>
+<option value="medium" selected>Medium</option>
+<option value="hard">Hard</option>
+</select>
+</div>
+
+<div class="subtitle" id="subtitle">Click “Read Story” to begin</div>
+<button class="read-btn" onclick="readPassage()">Read Story</button>
+
+<div id="quiz" class="hidden"></div>
+<div id="score" class="score-box"></div>
+</div>
+
+<div id="analyticsTab" class="hidden">
+<h2 style="text-align:center">Progress Analytics</h2>
+<div class="analytics">
+<div>Attempts<br><span id="totalAttempts">0</span></div>
+<div>Best Score<br><span id="bestScore">0%</span></div>
+<div>Average Score<br><span id="avgScore">0%</span></div>
+</div>
+</div>
+
+<div id="resultsTab" class="hidden">
+<h2 style="text-align:center">Previous Results</h2>
+<table>
+<thead>
+<tr><th>Date</th><th>Difficulty</th><th>Score</th></tr>
+</thead>
+<tbody id="resultsTable"></tbody>
+</table>
+</div>
+</div>
+
+<script>
+const STUDENT_NAME="Chinecherem Erinne";
+
+/* Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyCLzYqQyETtBVTvc0pakR_gQchngQtiPjM",
+  authDomain: "project4-e3233.firebaseapp.com",
+  databaseURL: "https://project4-e3233-default-rtdb.firebaseio.com",
+  projectId: "project4-e3233",
+  storageBucket: "project4-e3233.appspot.com",
+  messagingSenderId: "243254977320",
+  appId: "1:243254977320:web:2511fbe1d8e488ff1ce61d"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+// Get a reference to the database
+const db = firebase.database();
+
+
+/* Tabs */
+function showTab(t){
+ ["reading","analytics","results"].forEach(x=>{
+  document.getElementById(x+"Tab").classList.add("hidden");
+ });
+ document.getElementById(t+"Tab").classList.remove("hidden");
+}
+
+/* Voices */
+speechSynthesis.onvoiceschanged=()=>{
+ voiceSelect.innerHTML="";
+ speechSynthesis.getVoices().filter(v=>v.lang.startsWith("en"))
+ .forEach((v,i)=>{
+  voiceSelect.innerHTML+=`<option value="${i}">${v.name}</option>`;
+ });
+};
+
+
+/* Content */
+const passages = {
+  easy: [
+    "Liam and his friends were exploring near the river when they saw a small opening in the rocks. Curious, they went closer and found a hidden cave. Inside, they discovered some old paintings on the walls. They took pictures and promised to tell their teacher about the amazing find."
+  ],
+
+  medium: [
+    "While exploring the area by the river, Liam and his friends noticed a narrow opening in the rocks. Carefully, they entered the hidden cave and saw ancient paintings on the walls. Excited, they documented everything with photos and decided to share the discovery with their teacher the next day."
+  ],
+
+  hard: [
+    "During an adventurous walk along the riverbank, Liam and his friends stumbled upon a concealed cave hidden among the rocks. Intrigued, they entered cautiously and observed intricate ancient paintings decorating the walls. They photographed the drawings and agreed to report their remarkable discovery to their teacher."
+  ]
+};
+
+/* Questions */
+const questions = {
+  easy: [
+    {q:"Where were Liam and his friends exploring?", o:["Near the river","In the forest","At school","On the playground"], a:0},
+    {q:"What did they find in the rocks?", o:["A hidden cave","A treasure chest","A secret tunnel","A small house"], a:0},
+    {q:"What was inside the cave?", o:["Old paintings","Gold coins","Books","A river"], a:0},
+    {q:"What did they do with the paintings?", o:["Took pictures","Destroyed them","Ignored them","Covered them"], a:0},
+    {q:"Who did they plan to tell about the cave?", o:["Their teacher","A stranger","Their parents","The police"], a:0},
+    {q:"The children were ______.", o:["Curious","Scared","Hungry","Tired"], a:0},
+    {q:"The cave was ______.", o:["Hidden","Open","Huge","Flooded"], a:0},
+    {q:"The paintings were ______.", o:["Old","New","Bright","Modern"], a:0},
+    {q:"The main idea of the story is about ______.", o:["Discovering a hidden cave","Going fishing","Playing outside","Having a picnic"], a:0},
+    {q:"The friends’ action shows ______.", o:["Curiosity","Laziness","Fear","Anger"], a:0}
+  ],
+
+  medium: [
+    {q:"What led Liam and his friends to the cave?", o:["A narrow opening in the rocks","A map","A teacher","A storm"], a:0},
+    {q:"How did they enter the cave?", o:["Carefully","Rushing in","By climbing trees","By swimming"], a:0},
+    {q:"What did they see inside?", o:["Ancient paintings","Treasure","Animals","A river"], a:0},
+    {q:"How did they record the discovery?", o:["With photos","With drawings","With notes","By telling a friend"], a:0},
+    {q:"Who did they plan to inform?", o:["Their teacher","The mayor","Their parents","The principal"], a:0},
+    {q:"Their feelings during the discovery were ______.", o:["Excited","Bored","Scared","Angry"], a:0},
+    {q:"The cave can best be described as ______.", o:["Hidden and narrow","Open and wide","Flooded","Dangerous"], a:0},
+    {q:"Why did they document the cave?", o:["To share the discovery","To keep it secret","To sell it","To destroy it"], a:0},
+    {q:"The story emphasizes ______.", o:["Exploration","Homework","Sleeping","Shopping"], a:0},
+    {q:"What trait did the children show?", o:["Curiosity","Fear","Laziness","Anger"], a:0}
+  ],
+
+  hard: [
+    {q:"Where did Liam and his friends find the cave?", o:["Hidden among rocks","At school","In a forest","Near a mountain"], a:0},
+    {q:"How did they enter the cave?", o:["Cautiously","Rushing","Without thinking","Swimming"], a:0},
+    {q:"What decorated the cave walls?", o:["Intricate ancient paintings","Modern art","Graffiti","Posters"], a:0},
+    {q:"What did the friends do with the paintings?", o:["Photographed them","Destroyed them","Covered them","Ignored them"], a:0},
+    {q:"Why did they want to tell the teacher?", o:["To report their discovery","To get permission","To sell the cave","To clean it"], a:0},
+    {q:"The story mainly highlights ______.", o:["Adventure and discovery","Fear of darkness","Homework importance","Playing games"], a:0},
+    {q:"Which word describes the cave?", o:["Concealed","Flooded","Modern","Open"], a:0},
+    {q:"The friends’ behavior shows ______.", o:["Caution and curiosity","Recklessness","Anger","Fear"], a:0},
+    {q:"What kind of walk did they have?", o:["Adventurous","Boring","Quick","Tiring"], a:0},
+    {q:"The lesson of the story is ______.", o:["Exploration can lead to amazing discoveries","Always stay home","Never enter caves","Avoid friends"], a:0}
+  ]
+};
+
+
+
+
+let difficulty,index,answers;
+
+function readPassage(){
+ difficulty=difficultySelect.value;
+ index=0;answers=[];
+ quiz.classList.add("hidden");
+ score.innerText="";
+ let lines=passages[difficulty],i=0;
+
+ function speak(){
+  if(i>=lines.length){startQuiz();return;}
+
+  const words=lines[i].split(" ");
+  subtitle.innerHTML=words.map(w=>`<span>${w}</span>`).join(" ");
+  const spans=[...subtitle.querySelectorAll("span")];
+  let wi=0;
+
+  let u=new SpeechSynthesisUtterance(lines[i]);
+  u.voice=speechSynthesis.getVoices()[voiceSelect.value];
+
+  u.onboundary=e=>{
+   if(e.name==="word"){
+    spans.forEach(s=>s.classList.remove("active"));
+    if(spans[wi]) spans[wi].classList.add("active");
+    wi++;
+   }
+  };
+
+  u.onend=()=>{i++;speak();};
+  speechSynthesis.speak(u);
+ }
+ speak();
+}
+
+function startQuiz(){
+ quiz.classList.remove("hidden");
+ showQuestion();
+}
+
+function showQuestion(){
+ let q=questions[difficulty][index];
+ quiz.innerHTML=`
+ <div class="question-card">
+ <h3>${q.q}</h3>
+ ${q.o.map((o,i)=>`
+  <label class="option">
+  <input type="radio" name="opt" value="${i}"> ${o}
+  </label>`).join("")}
+ <div class="controls">
+ <button onclick="${index<questions[difficulty].length-1?'nextQuestion()':'submitQuiz()'}">
+ ${index<questions[difficulty].length-1?'Next':'Submit'}
+ </button>
+ </div>
+ </div>`;
+}
+
+function nextQuestion(){
+ let s=document.querySelector("input[name='opt']:checked");
+ if(!s){showModal(STUDENT_NAME+", please select an answer.");return;}
+ answers.push(+s.value);
+ index++;showQuestion();
+}
+
+function submitQuiz(){
+ let s=document.querySelector("input[name='opt']:checked");
+ if(!s){showModal(STUDENT_NAME+", please select an answer.");return;}
+ answers.push(+s.value);
+
+ let correct=answers.filter((v,i)=>v===questions[difficulty][i].a).length;
+ let pct=Math.round(correct/answers.length*100);
+ score.innerText=`Score: ${pct}%`;
+ showModal(STUDENT_NAME+", your score is "+pct+"%");
+
+ db.ref("results").push({student:STUDENT_NAME,difficulty,score:pct,timestamp:Date.now()});
+ loadResults();
+}
+
+/* Results */
+function loadResults(){
+ db.ref("results").once("value",snap=>{
+  let data=Object.values(snap.val()||{}).filter(r=>r.student===STUDENT_NAME);
+  resultsTable.innerHTML="";
+  let sum=0,best=0;
+  data.forEach(r=>{
+   sum+=r.score;best=Math.max(best,r.score);
+   resultsTable.innerHTML+=`
+   <tr><td>${new Date(r.timestamp).toLocaleString()}</td><td>${r.difficulty}</td><td>${r.score}%</td></tr>`;
+  });
+  totalAttempts.innerText=data.length;
+  bestScore.innerText=best+"%";
+  avgScore.innerText=data.length?Math.round(sum/data.length)+"%":"0%";
+ });
+}
+loadResults();
+
+/* CLEAN MODAL — NO AUTO CLOSE */
+function showModal(message){
+ const overlay=document.createElement("div");
+ overlay.style=`position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999`;
+
+ const box=document.createElement("div");
+ box.style=`background:#fff;padding:28px;border-radius:16px;max-width:420px;width:90%;text-align:center`;
+
+ box.innerHTML=`
+ <h3 style="color:#1e3a8a;margin-bottom:10px">Message</h3>
+ <p style="margin-bottom:20px">${message}</p>
+ <button>OK</button>
+ `;
+
+ box.querySelector("button").onclick=()=>document.body.removeChild(overlay);
+ overlay.appendChild(box);
+ document.body.appendChild(overlay);
+}
+</script>
+</body>
+</html>

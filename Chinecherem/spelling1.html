@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spelling Practice – Chinecherem Erinne</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+:root{
+ --primary:#1e3a8a;
+ --secondary:#2563eb;
+ --accent:#0f766e;
+ --card:#ffffff;
+ --muted:#e5e7eb;
+ --highlight:#fde68a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+ font-family:"Segoe UI",system-ui,sans-serif;
+ background:linear-gradient(135deg,#e0e7ff,#f8fafc);
+ padding:14px;
+}
+
+.container{
+ max-width:950px;
+ margin:auto;
+ background:var(--card);
+ padding:26px;
+ border-radius:18px;
+ box-shadow:0 12px 35px rgba(0,0,0,.12);
+}
+
+h1,h2,h3{text-align:center;color:var(--primary);margin-bottom:14px}
+
+.hidden{display:none}
+
+/* NAV */
+.nav{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:14px;
+ margin-bottom:22px;
+}
+
+.nav button{
+ padding:12px;
+ border-radius:14px;
+ border:none;
+ font-weight:700;
+ color:#fff;
+ cursor:pointer;
+ box-shadow:0 6px 0 rgba(0,0,0,.25);
+}
+
+.nav button:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.nav button:nth-child(1){background:#2563eb}
+.nav button:nth-child(2){background:#0f766e}
+.nav button:nth-child(3){background:#7c3aed}
+
+/* INPUT */
+input{
+ width:100%;
+ padding:14px;
+ border-radius:14px;
+ border:2px solid var(--muted);
+ font-size:1rem;
+ margin:18px 0;
+}
+
+/* BUTTONS */
+button.action{
+ padding:12px 22px;
+ border-radius:14px;
+ border:none;
+ font-weight:700;
+ color:#fff;
+ cursor:pointer;
+ box-shadow:0 6px 0 rgba(0,0,0,.25);
+}
+
+button.action:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.primary{background:var(--secondary)}
+.accent{background:var(--accent)}
+.purple{background:#7c3aed}
+
+.controls{
+ display:flex;
+ justify-content:center;
+ gap:14px;
+ flex-wrap:wrap;
+ margin-top:14px;
+}
+
+.feedback{text-align:center;font-size:1.1rem;font-weight:700;margin-top:14px}
+
+/* SCORE */
+.score-box{
+ text-align:center;
+ font-size:2.4rem;
+ font-weight:900;
+ color:var(--accent);
+ margin:24px 0;
+}
+
+.missed{
+ background:#eef2ff;
+ padding:18px;
+ border-radius:16px;
+}
+
+/* ANALYTICS */
+.analytics{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:16px;
+ margin-top:22px;
+}
+
+.analytics div{
+ background:#eef2ff;
+ padding:20px;
+ border-radius:16px;
+ text-align:center;
+ font-weight:700;
+}
+
+/* TABLE */
+table{
+ width:100%;
+ border-collapse:collapse;
+ margin-top:18px;
+}
+
+th,td{
+ padding:12px;
+ border-bottom:1px solid var(--muted);
+ text-align:center;
+}
+
+th{background:#e0e7ff}
+
+.confetti{
+ position:fixed;
+ inset:0;
+ pointer-events:none;
+ z-index:9999;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Spelling Practice</h1>
+
+<div class="nav">
+ <button onclick="showTab('practice')">Spelling</button>
+ <button onclick="showTab('analytics')">Progress Analytics</button>
+ <button onclick="showTab('results')">Previous Results</button>
+</div>
+
+<!-- PRACTICE -->
+<div id="practiceTab">
+ <h3>Student: Chinecherem Erinne</h3>
+
+ <input id="answer" placeholder="Type the spelling" autocorrect="off" spellcheck="false">
+
+ <div class="controls">
+  <button class="action primary" onclick="playWord()">Word</button>
+  <button class="action accent" onclick="playMeaning()">Meaning</button>
+  <button class="action purple" onclick="playSentence()">Sentence</button>
+ </div>
+
+ <div class="controls">
+  <button class="action accent" onclick="submitAnswer()">Submit</button>
+ </div>
+
+ <div class="feedback" id="feedback"></div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="analyticsTab" class="hidden">
+ <h2>Progress Analytics</h2>
+ <div class="analytics">
+  <div>Attempts<br><span id="totalAttempts">0</span></div>
+  <div>Best Score<br><span id="bestScore">0%</span></div>
+  <div>Average<br><span id="avgScore">0%</span></div>
+ </div>
+</div>
+
+<!-- RESULTS -->
+<div id="resultsTab" class="hidden">
+ <h2>Previous Results</h2>
+ <table>
+  <thead>
+   <tr><th>Date</th><th>Score</th><th>Percentage</th></tr>
+  </thead>
+  <tbody id="resultsTable"></tbody>
+ </table>
+ <div class="controls">
+  <button class="action primary" onclick="retake()">Retake Spelling</button>
+ </div>
+</div>
+
+<div class="score-box hidden" id="finalScore"></div>
+<div class="missed hidden" id="missed"></div>
+
+</div>
+
+<canvas id="confettiCanvas" class="confetti hidden"></canvas>
+
+<script>
+const STUDENT_NAME="Chinecherem Erinne";
+
+/* Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyAiT77KzMlRTi5LIz6bAk_MUM6iUlWIPQw",
+  authDomain: "project1-4067d.firebaseapp.com",
+  databaseURL: "https://project1-4067d-default-rtdb.firebaseio.com",
+  projectId: "project1-4067d",
+  storageBucket: "project1-4067d.appspot.com",
+  messagingSenderId: "365793583410",
+  appId: "1:365793583410:web:c2de9aac1c84d8e6ab772b"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+// Get a reference to the database
+const db = firebase.database();
+
+/* WORDS */
+const words = [
+  {word:"accommodate", meaning:"to provide lodging", sentence:"The hotel can accommodate many guests."},
+  {word:"rhythm", meaning:"pattern of sound", sentence:"The drummer kept a rhythm."},
+  {word:"definite", meaning:"clearly stated", sentence:"She gave a definite answer."},
+  {word:"embarrass", meaning:"cause shame", sentence:"He didn’t want to embarrass her."},
+  {word:"conscience", meaning:"sense of right", sentence:"Her conscience guided her."},
+  {word:"privilege", meaning:"special right", sentence:"It’s a privilege to help."},
+  {word:"necessary", meaning:"required", sentence:"Water is necessary."},
+  {word:"occurred", meaning:"happened", sentence:"The event occurred."},
+  {word:"guarantee", meaning:"promise", sentence:"This comes with a guarantee."},
+  {word:"parallel", meaning:"side by side", sentence:"The lines are parallel."},
+  {word:"nuisance", meaning:"annoyance", sentence:"The noise was a nuisance."},
+  {word:"possession", meaning:"ownership", sentence:"He lost possession of his book."},
+  {word:"queue", meaning:"a line", sentence:"We stood in a queue for tickets."},
+  {word:"relevant", meaning:"connected", sentence:"Keep answers relevant to the question."},
+  {word:"restaurant", meaning:"place to eat", sentence:"We ate dinner at a restaurant."},
+  {word:"separate", meaning:"apart", sentence:"Please separate the recyclables."},
+  {word:"tomorrow", meaning:"next day", sentence:"See you tomorrow at school."},
+  {word:"vacuum", meaning:"empty space", sentence:"He used a vacuum to clean the carpet."},
+  {word:"weather", meaning:"atmosphere", sentence:"The weather was sunny and warm."},
+  {word:"yacht", meaning:"pleasure boat", sentence:"They went sailing on a yacht."},
+  {word:"bizarre", meaning:"strange or unusual", sentence:"The magician performed a bizarre trick."},
+  {word:"courage", meaning:"bravery", sentence:"She showed courage during the fire drill."},
+  {word:"drought", meaning:"long period without rain", sentence:"The drought caused the crops to fail."},
+  {word:"efficient", meaning:"working well without waste", sentence:"She is an efficient worker."},
+  {word:"fragile", meaning:"easily broken", sentence:"Handle the vase carefully; it’s fragile."},
+  {word:"genuine", meaning:"real or sincere", sentence:"He gave a genuine apology."},
+  {word:"harvest", meaning:"gathering crops", sentence:"Farmers harvest the wheat in summer."},
+  {word:"identify", meaning:"to recognize", sentence:"Can you identify the animals in the picture?"},
+  {word:"justice", meaning:"fair treatment", sentence:"The court seeks justice for all."},
+  {word:"knowledge", meaning:"information and understanding", sentence:"Books give knowledge."},
+  {word:"latitude", meaning:"distance north or south", sentence:"The city is at a high latitude."},
+  {word:"magnitude", meaning:"great size or importance", sentence:"The earthquake was of great magnitude."},
+  {word:"necessary", meaning:"needed", sentence:"It is necessary to study for exams."},
+  {word:"opinion", meaning:"a personal view", sentence:"Everyone has a different opinion."},
+  {word:"peculiar", meaning:"strange or unusual", sentence:"He had a peculiar habit of whistling."},
+  {word:"quantity", meaning:"amount or number", sentence:"The recipe requires a large quantity of sugar."},
+  {word:"resemble", meaning:"to look like", sentence:"She resembles her mother."},
+  {word:"strategy", meaning:"plan of action", sentence:"We need a strategy to win the game."},
+  {word:"tremble", meaning:"to shake slightly", sentence:"He began to tremble with cold."},
+  {word:"unique", meaning:"one of a kind", sentence:"Her painting is unique."},
+  {word:"variety", meaning:"different kinds", sentence:"The store sells a variety of fruits."},
+  {word:"wisdom", meaning:"knowledge and good judgment", sentence:"Grandparents often share wisdom."},
+  {word:"zealous", meaning:"full of energy and enthusiasm", sentence:"She is zealous about helping animals."},
+  {word:"annual", meaning:"happening every year", sentence:"The annual fair is fun."},
+  {word:"benefit", meaning:"advantage or good effect", sentence:"Exercise has many benefits."},
+  {word:"challenge", meaning:"something difficult", sentence:"Climbing the hill was a challenge."},
+  {word:"distance", meaning:"space between two points", sentence:"The distance to school is long."},
+  {word:"expand", meaning:"to increase in size", sentence:"The company plans to expand its offices."},
+  {word:"familiar", meaning:"well known", sentence:"The song sounds familiar."},
+  {word:"glimpse", meaning:"a quick look", sentence:"He caught a glimpse of the bird."},
+  {word:"honest", meaning:"truthful", sentence:"Be honest when answering questions."},
+  {word:"imagine", meaning:"to think of", sentence:"Imagine a world without cars."},
+  {word:"journey", meaning:"a trip from one place to another", sentence:"They went on a journey to the mountains."},
+  {word:"knowledgeable", meaning:"having lots of knowledge", sentence:"The guide was very knowledgeable."}
+];
+
+
+let i=0,score=0,missed=[];
+const synth=speechSynthesis;
+
+function speak(t){synth.speak(new SpeechSynthesisUtterance(t))}
+
+speak("Welcome, Chinecherem Erinne! Listen carefully and spell each word you hear. You can use the other buttons to learn more about the spelling word—its meaning, how it’s used in a sentence, and to distinguish it from words that sound the same but have different meanings.");
+
+function playWord(){speak(words[i].word)}
+function playMeaning(){speak(words[i].meaning)}
+function playSentence(){speak(words[i].sentence)}
+
+function submitAnswer(){
+ const a=answer.value.trim().toLowerCase();
+ if(a===words[i].word){score++;feedback.textContent="Correct"}
+ else{missed.push(words[i].word);feedback.textContent="Correct word: "+words[i].word}
+ answer.value="";
+ i++;
+ if(i<words.length)setTimeout(()=>{feedback.textContent="";playWord()},900);
+ else endGame();
+}
+
+function endGame(){
+ const pct=Math.round(score/words.length*100);
+ finalScore.textContent=`Score: ${pct}%`;
+ finalScore.classList.remove("hidden");
+ missed.innerHTML=missed.length?`Missed:<ul>${missed.map(w=>`<li>${w}</li>`).join("")}</ul>`:"Perfect score";
+ missed.classList.remove("hidden");
+
+ db.ref("results").push({
+  student:STUDENT_NAME,
+  type:"spelling",
+  score,
+  total:words.length,
+  percentage:pct,
+  timestamp:Date.now(),
+  date:new Date().toLocaleString()
+ });
+
+ loadResults();
+ launchConfetti();
+}
+
+function showTab(t){
+ ["practice","analytics","results"].forEach(x=>{
+  document.getElementById(x+"Tab").classList.add("hidden");
+ });
+ document.getElementById(t+"Tab").classList.remove("hidden");
+}
+
+function retake(){location.reload()}
+
+/* LOAD RESULTS */
+function loadResults(){
+ db.ref("results").once("value",snap=>{
+  let data=Object.values(snap.val()||{}).filter(r=>r.student===STUDENT_NAME && r.type==="spelling");
+  resultsTable.innerHTML="";
+  let sum=0,best=0;
+  data.forEach(r=>{
+   sum+=r.percentage;best=Math.max(best,r.percentage);
+   resultsTable.innerHTML+=`<tr><td>${r.date}</td><td>${r.score}/${r.total}</td><td>${r.percentage}%</td></tr>`;
+  });
+  totalAttempts.textContent=data.length;
+  bestScore.textContent=best+"%";
+  avgScore.textContent=data.length?Math.round(sum/data.length)+"%":"0%";
+ });
+}
+loadResults();
+
+/* CONFETTI */
+function launchConfetti(){
+ const c=confettiCanvas,ctx=c.getContext("2d");
+ c.width=innerWidth;c.height=innerHeight;
+ c.classList.remove("hidden");
+ const p=[...Array(200)].map(()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:5,d:2+Math.random()*3,color:`hsl(${Math.random()*360},100%,50%)`}));
+ setInterval(()=>{ctx.clearRect(0,0,c.width,c.height);p.forEach(o=>{ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,2*Math.PI);ctx.fillStyle=o.color;ctx.fill();o.y+=o.d;if(o.y>c.height)o.y=0})},20);
+}
+</script>
+</body>
+</html>

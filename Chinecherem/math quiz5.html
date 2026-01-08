@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Grade 4 Math Quiz – Chinecherem Erinne</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+:root{
+ --primary:#1e3a8a;
+ --secondary:#2563eb;
+ --accent:#0f766e;
+ --card:#ffffff;
+ --muted:#e5e7eb;
+ --highlight:#fde68a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+ font-family:"Segoe UI",system-ui,sans-serif;
+ background:linear-gradient(135deg,#e0e7ff,#f8fafc);
+ padding:16px;
+}
+.container{
+ max-width:950px;
+ margin:auto;
+ background:var(--card);
+ padding:26px;
+ border-radius:18px;
+ box-shadow:0 14px 40px rgba(0,0,0,.15);
+ margin-bottom:20px;
+}
+h1,h2,h3{text-align:center;color:var(--primary);margin-bottom:14px}
+.hidden{display:none}
+
+.nav{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:14px;
+ margin-bottom:22px;
+}
+.nav button{
+ padding:12px;
+ border-radius:14px;
+ border:none;
+ font-weight:700;
+ color:#fff;
+ cursor:pointer;
+ box-shadow:0 6px 0 rgba(0,0,0,.25);
+}
+.nav button:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.nav button:nth-child(1){background:#2563eb}
+.nav button:nth-child(2){background:#0f766e}
+.nav button:nth-child(3){background:#7c3aed}
+
+input[type=number]{
+ width:100%;
+ padding:14px;
+ font-size:1.1rem;
+ border-radius:14px;
+ border:2px solid var(--muted);
+ margin:16px 0;
+ text-align:center;
+}
+
+.controls{
+ display:flex;
+ justify-content:center;
+ gap:14px;
+ flex-wrap:wrap;
+ margin-top:12px;
+}
+button{
+ padding:12px 22px;
+ border-radius:14px;
+ border:none;
+ color:#fff;
+ font-weight:700;
+ cursor:pointer;
+ background:linear-gradient(180deg,#3b82f6,#1e40af);
+ box-shadow:0 6px 0 #1e3a8a;
+}
+button:active{
+ transform:translateY(4px);
+ box-shadow:0 2px 0 #1e3a8a;
+}
+.btn-accent{
+ background:linear-gradient(180deg,#14b8a6,#0f766e);
+ box-shadow:0 6px 0 #115e59;
+}
+
+.feedback{text-align:center;font-size:1.2rem;font-weight:700;margin-top:10px}
+.score-box{text-align:center;font-size:2.4rem;font-weight:900;color:var(--accent);margin:20px 0}
+
+.analytics{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:16px;
+ margin-top:22px;
+}
+.analytics div{
+ background:#eef2ff;
+ padding:20px;
+ border-radius:16px;
+ text-align:center;
+ font-weight:700;
+}
+
+.results-list{
+ background:#eef2ff;
+ padding:16px;
+ border-radius:14px;
+ margin-top:12px;
+}
+.results-list li{margin-bottom:6px}
+
+.confetti{
+ position:fixed;
+ inset:0;
+ pointer-events:none;
+ z-index:9999;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Grade 4 Math Quiz</h1>
+
+<div class="nav">
+ <button onclick="showTab('quizTab')">Quiz</button>
+ <button onclick="showTab('analyticsTab')">Analytics</button>
+ <button onclick="showTab('resultsTab')">Previous Results</button>
+</div>
+
+<!-- QUIZ -->
+<div id="quizTab">
+ <h3>Student: Chinecherem Erinne</h3>
+ <h2 id="questionText"></h2>
+ <input type="number" id="answer" placeholder="Type your answer here">
+ <div class="controls">
+  <button onclick="readQuestion()">Read Question</button>
+  <button class="btn-accent" onclick="submitAnswer()">Submit Answer</button>
+ </div>
+ <div class="feedback" id="feedback"></div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="analyticsTab" class="hidden">
+ <h2>Progress Analytics</h2>
+ <div class="analytics">
+  <div>Attempts<br><span id="totalAttempts">0</span></div>
+  <div>Best Score<br><span id="bestScore">0%</span></div>
+  <div>Average<br><span id="avgScore">0%</span></div>
+ </div>
+</div>
+
+<!-- RESULTS -->
+<div id="resultsTab" class="hidden">
+ <h2>Previous Results</h2>
+ <ul class="results-list" id="resultsList"></ul>
+ <div class="controls">
+  <button onclick="retakeQuiz()">Retake Quiz</button>
+ </div>
+</div>
+
+<div class="score-box hidden" id="scoreBox"></div>
+<canvas id="confettiCanvas" class="confetti hidden"></canvas>
+</div>
+
+<script>
+/* STUDENT FIXED */
+const STUDENT_NAME="Chinecherem Erinne";
+
+/* Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyBgjLn8bw3xaIktJQxhisDnjGWv_GkJr8Y",
+  authDomain: "compreh-8a519.firebaseapp.com",
+  databaseURL: "https://compreh-8a519-default-rtdb.firebaseio.com",
+  projectId: "compreh-8a519",
+  storageBucket: "compreh-8a519.appspot.com",
+  messagingSenderId: "46119679894",  // replace with your Firebase value if different
+  appId: "1:46119679894:web:b5b870b047575d50a0cfb7"  // replace with your Firebase value if different
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+// Get a reference to the database
+const db = firebase.database();
+
+/* QUESTIONS */
+const questions = [
+ {q:"If a bus has 48 seats and 32 are occupied, how many are empty?", a:16, exp:"Subtract 32 from 48 to find empty seats."},
+ {q:"A store sold 27 apples on Monday and 35 on Tuesday. How many apples were sold in total?", a:62, exp:"Add 27 + 35 to get total apples sold."},
+ {q:"Tom has 45 marbles. He gives 18 to his friend. How many marbles does he have left?", a:27, exp:"Subtract 18 from 45 to find remaining marbles."},
+ {q:"A box contains 24 pencils. If 4 pencils are packed in each small box, how many small boxes can be filled?", a:6, exp:"Divide 24 by 4 to find number of boxes."},
+ {q:"A baker made 60 cupcakes. He packed 5 cupcakes in each box. How many boxes did he use?", a:12, exp:"Divide 60 by 5 to get number of boxes."},
+ {q:"A school has 120 students. They are divided equally into 6 classrooms. How many students per classroom?", a:20, exp:"Divide 120 by 6 to find students per class."},
+ {q:"Sarah has 72 candies. She shares them equally among 9 friends. How many candies does each friend get?", a:8, exp:"Divide 72 by 9 to find candies per friend."},
+ {q:"A farmer has 48 chickens. He puts 6 in each pen. How many pens are needed?", a:8, exp:"Divide 48 by 6 to find number of pens."},
+ {q:"A library has 250 books. 80 are borrowed. How many books are left in the library?", a:170, exp:"Subtract 80 from 250 to find remaining books."},
+ {q:"A car travels 60 km in 1 hour. How far will it travel in 5 hours?", a:300, exp:"Multiply 60 × 5 to find distance."},
+ {q:"A ribbon is 84 cm long. If it is cut into 7 equal pieces, how long is each piece?", a:12, exp:"Divide 84 by 7 to find the length of each piece."},
+ {q:"There are 45 chairs in a hall. If 9 chairs are in each row, how many rows are there?", a:5, exp:"Divide 45 by 9 to find number of rows."},
+ {q:"A box has 36 chocolates. 9 are eaten. How many are left?", a:27, exp:"Subtract 9 from 36 to find remaining chocolates."},
+ {q:"Lucy bought 4 packs of pencils. Each pack has 12 pencils. How many pencils does she have in total?", a:48, exp:"Multiply 4 × 12 to get total pencils."},
+ {q:"A train travels 75 km per hour. How far will it travel in 4 hours?", a:300, exp:"Multiply 75 × 4 to get distance."},
+ {q:"A garden has 36 flowers. 12 are red, 15 are yellow. How many are other colors?", a:9, exp:"Subtract red and yellow from total: 36-12-15=9."},
+ {q:"A bag contains 90 candies. If 10 children share them equally, how many candies does each child get?", a:9, exp:"Divide 90 by 10 to find candies per child."},
+ {q:"A store has 48 chairs. 6 chairs are broken. How many are in good condition?", a:42, exp:"Subtract broken chairs from total: 48-6=42."},
+ {q:"A farmer collects 120 eggs in 10 days. How many eggs per day?", a:12, exp:"Divide 120 by 10 to get eggs per day."},
+ {q:"A bottle holds 2 liters of water. How many milliliters is that?", a:2000, exp:"1 liter = 1000 ml. 2 × 1000 = 2000 ml."},
+ {q:"A pizza is cut into 8 slices. John eats 3 slices. How many slices are left?", a:5, exp:"Subtract 3 from 8 to find remaining slices."},
+ {q:"A box has 48 balls. 12 are red, 18 are blue. How many are other colors?", a:18, exp:"48-12-18=18 balls of other colors."},
+ {q:"A class has 30 students. If 6 are absent, how many are present?", a:24, exp:"Subtract 6 from 30 to find present students."},
+ {q:"A shop sold 250 chocolates in 5 days equally. How many chocolates per day?", a:50, exp:"Divide 250 by 5 to get chocolates per day."},
+ {q:"A rectangle is 15 m long and 6 m wide. What is the perimeter?", a:42, exp:"Perimeter = 2(length+width). 2(15+6)=42."},
+ {q:"A garden has 56 plants. 7 plants are in each row. How many rows are there?", a:8, exp:"Divide 56 by 7 to find number of rows."},
+ {q:"A box contains 100 pencils. If 25 are given away, how many remain?", a:75, exp:"Subtract 25 from 100 to find remaining pencils."},
+ {q:"A school bought 72 chairs for 8 classrooms. How many chairs per classroom?", a:9, exp:"Divide 72 by 8 to find chairs per classroom."},
+ {q:"A baker baked 90 cookies. 30 were sold. How many cookies are left?", a:60, exp:"Subtract 30 from 90 to find remaining cookies."},
+ {q:"A train carries 180 passengers. 60 get off at the first station. How many remain?", a:120, exp:"Subtract 60 from 180 to find remaining passengers."}
+];
+
+
+let index=0,score=0,missed=[];
+const synth=speechSynthesis;
+
+function speak(t){synth.speak(new SpeechSynthesisUtterance(t))}
+
+/* INITIAL READ */
+speak("Welcome, Chinecherem Erinne! Listen carefully. Each question will be read aloud with instructions and explanations. Type your answer in the box and submit.");
+
+/* NAVIGATION */
+function showTab(tab){
+ ["quizTab","analyticsTab","resultsTab"].forEach(t=>document.getElementById(t).classList.add("hidden"));
+ document.getElementById(tab).classList.remove("hidden");
+}
+
+/* LOAD QUESTION */
+function loadQuestion(){
+ questionText.textContent=questions[index].q;
+ readQuestion();
+}
+
+/* READ QUESTION ALOUD */
+function readQuestion(){
+ const q=questions[index];
+ speak(`Solve this question: ${q.q}. Explanation: ${q.exp}`);
+}
+
+/* SUBMIT ANSWER */
+function submitAnswer(){
+ const val=Number(answer.value);
+ if(val===questions[index].a){
+  score++;
+  feedback.textContent="Correct!";
+ }else{
+  missed.push({q:questions[index].q,correct:questions[index].a});
+  feedback.textContent=`Incorrect. Correct answer: ${questions[index].a}`;
+ }
+ answer.value="";
+ index++;
+ if(index<questions.length){
+  setTimeout(()=>{feedback.textContent="";loadQuestion()},900);
+ }else endQuiz();
+}
+
+/* END QUIZ */
+function endQuiz(){
+ const pct=Math.round(score/questions.length*100);
+ scoreBox.textContent=`Score: ${score}/${questions.length} (${pct}%)`;
+ scoreBox.classList.remove("hidden");
+
+ /* FIREBASE SAVE */
+ db.ref("results").push({
+  student:STUDENT_NAME,
+  type:"math",
+  score,
+  total:questions.length,
+  percentage:pct,
+  timestamp:Date.now(),
+  date:new Date().toLocaleString()
+ });
+
+ loadPreviousResults();
+ launchConfetti();
+}
+
+/* RETAKE */
+function retakeQuiz(){
+ index=0;score=0;missed=[];
+ scoreBox.classList.add("hidden");
+ feedback.textContent="";
+ showTab("quizTab");
+ loadQuestion();
+}
+
+/* LOAD PREVIOUS RESULTS */
+function loadPreviousResults(){
+ const list=document.getElementById("resultsList");
+ list.innerHTML="";
+ list.classList.remove("hidden");
+
+ db.ref("results").orderByChild("student").equalTo(STUDENT_NAME).once("value",snap=>{
+  const data=Object.values(snap.val()||{}).filter(r=>r.type==="math");
+  let sum=0,best=0;
+  data.forEach(r=>{
+   sum+=r.percentage;
+   best=Math.max(best,r.percentage);
+   const li=document.createElement("li");
+   li.textContent=`${r.date} – ${r.score}/${r.total} (${r.percentage}%)`;
+   list.appendChild(li);
+  });
+  totalAttempts.textContent=data.length;
+  bestScore.textContent=best+"%";
+  avgScore.textContent=data.length?Math.round(sum/data.length)+"%":"0%";
+ });
+}
+
+/* CONFETTI */
+function launchConfetti(){
+ const c=confettiCanvas,ctx=c.getContext("2d");
+ c.width=innerWidth;c.height=innerHeight;
+ c.classList.remove("hidden");
+ const p=[...Array(200)].map(()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:5,d:2+Math.random()*3,color:`hsl(${Math.random()*360},100%,50%)`}));
+ setInterval(()=>{ctx.clearRect(0,0,c.width,c.height);p.forEach(o=>{ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,2*Math.PI);ctx.fillStyle=o.color;ctx.fill();o.y+=o.d;if(o.y>c.height)o.y=0})},20);
+}
+
+/* INITIAL LOAD */
+loadQuestion();
+</script>
+
+</body>
+</html>
