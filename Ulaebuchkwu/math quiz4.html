@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Grade 4 Math Quiz – Ulaebuchukwu Erinne</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+:root{
+ --primary:#1e3a8a;
+ --secondary:#2563eb;
+ --accent:#0f766e;
+ --card:#ffffff;
+ --muted:#e5e7eb;
+ --highlight:#fde68a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+ font-family:"Segoe UI",system-ui,sans-serif;
+ background:linear-gradient(135deg,#e0e7ff,#f8fafc);
+ padding:16px;
+}
+.container{
+ max-width:950px;
+ margin:auto;
+ background:var(--card);
+ padding:26px;
+ border-radius:18px;
+ box-shadow:0 14px 40px rgba(0,0,0,.15);
+ margin-bottom:20px;
+}
+h1,h2,h3{text-align:center;color:var(--primary);margin-bottom:14px}
+.hidden{display:none}
+
+.nav{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:14px;
+ margin-bottom:22px;
+}
+.nav button{
+ padding:12px;
+ border-radius:14px;
+ border:none;
+ font-weight:700;
+ color:#fff;
+ cursor:pointer;
+ box-shadow:0 6px 0 rgba(0,0,0,.25);
+}
+.nav button:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.nav button:nth-child(1){background:#2563eb}
+.nav button:nth-child(2){background:#0f766e}
+.nav button:nth-child(3){background:#7c3aed}
+
+input[type=number]{
+ width:100%;
+ padding:14px;
+ font-size:1.1rem;
+ border-radius:14px;
+ border:2px solid var(--muted);
+ margin:16px 0;
+ text-align:center;
+}
+
+.controls{
+ display:flex;
+ justify-content:center;
+ gap:14px;
+ flex-wrap:wrap;
+ margin-top:12px;
+}
+button{
+ padding:12px 22px;
+ border-radius:14px;
+ border:none;
+ color:#fff;
+ font-weight:700;
+ cursor:pointer;
+ background:linear-gradient(180deg,#3b82f6,#1e40af);
+ box-shadow:0 6px 0 #1e3a8a;
+}
+button:active{
+ transform:translateY(4px);
+ box-shadow:0 2px 0 #1e3a8a;
+}
+.btn-accent{
+ background:linear-gradient(180deg,#14b8a6,#0f766e);
+ box-shadow:0 6px 0 #115e59;
+}
+
+.feedback{text-align:center;font-size:1.2rem;font-weight:700;margin-top:10px}
+.score-box{text-align:center;font-size:2.4rem;font-weight:900;color:var(--accent);margin:20px 0}
+
+.analytics{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:16px;
+ margin-top:22px;
+}
+.analytics div{
+ background:#eef2ff;
+ padding:20px;
+ border-radius:16px;
+ text-align:center;
+ font-weight:700;
+}
+
+.results-list{
+ background:#eef2ff;
+ padding:16px;
+ border-radius:14px;
+ margin-top:12px;
+}
+.results-list li{margin-bottom:6px}
+
+.confetti{
+ position:fixed;
+ inset:0;
+ pointer-events:none;
+ z-index:9999;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Grade 1 Math Quiz</h1>
+
+<div class="nav">
+ <button onclick="showTab('quizTab')">Quiz</button>
+ <button onclick="showTab('analyticsTab')">Analytics</button>
+ <button onclick="showTab('resultsTab')">Previous Results</button>
+</div>
+
+<!-- QUIZ -->
+<div id="quizTab">
+ <h3>Student: Ulaebuchukwu Erinne</h3>
+ <h2 id="questionText"></h2>
+ <input type="number" id="answer" placeholder="Type your answer here">
+ <div class="controls">
+  <button onclick="readQuestion()">Read Question</button>
+  <button class="btn-accent" onclick="submitAnswer()">Submit Answer</button>
+ </div>
+ <div class="feedback" id="feedback"></div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="analyticsTab" class="hidden">
+ <h2>Progress Analytics</h2>
+ <div class="analytics">
+  <div>Attempts<br><span id="totalAttempts">0</span></div>
+  <div>Best Score<br><span id="bestScore">0%</span></div>
+  <div>Average<br><span id="avgScore">0%</span></div>
+ </div>
+</div>
+
+<!-- RESULTS -->
+<div id="resultsTab" class="hidden">
+ <h2>Previous Results</h2>
+ <ul class="results-list" id="resultsList"></ul>
+ <div class="controls">
+  <button onclick="retakeQuiz()">Retake Quiz</button>
+ </div>
+</div>
+
+<div class="score-box hidden" id="scoreBox"></div>
+<canvas id="confettiCanvas" class="confetti hidden"></canvas>
+</div>
+
+<script>
+/* STUDENT FIXED */
+const STUDENT_NAME="Ulaebuchukwu Erinne";
+
+
+/* Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyCLzYqQyETtBVTvc0pakR_gQchngQtiPjM",
+  authDomain: "project4-e3233.firebaseapp.com",
+  databaseURL: "https://project4-e3233-default-rtdb.firebaseio.com",
+  projectId: "project4-e3233",
+  storageBucket: "project4-e3233.appspot.com",
+  messagingSenderId: "243254977320",
+  appId: "1:243254977320:web:2511fbe1d8e488ff1ce61d"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+// Get a reference to the database
+const db = firebase.database();
+
+/* GRADE 1 – LEVEL A QUESTIONS */
+const questions = [
+  {q:"I have 3 apples. I eat 1 apple. How many apples are left?", a:2, exp:"Take away 1 from 3."},
+  {q:"There are 2 cats. 1 more cat comes. How many cats now?", a:3, exp:"Add 1 to 2."},
+  {q:"You see 5 birds. 1 bird flies away. How many birds are left?", a:4, exp:"Subtract 1 from 5."},
+  {q:"I have 4 balls. My friend gives me 1 more. How many balls?", a:5, exp:"Add 1 to 4."},
+  {q:"There are 6 chairs. 1 chair breaks. How many chairs are good?", a:5, exp:"Take away 1 from 6."},
+
+  {q:"I have 1 toy. I get 1 more toy. How many toys?", a:2, exp:"Add 1 and 1."},
+  {q:"There are 5 crayons. I lose 1 crayon. How many crayons are left?", a:4, exp:"Subtract 1 from 5."},
+  {q:"I count 2 stars and then 2 more stars. How many stars?", a:4, exp:"Add 2 and 2."},
+  {q:"There are 3 dogs. 1 dog runs away. How many dogs left?", a:2, exp:"Take away 1 from 3."},
+  {q:"I have 4 books. My teacher gives me 1 more. How many books?", a:5, exp:"Add 1 to 4."},
+
+  {q:"There are 6 balloons. 2 pop. How many balloons are left?", a:4, exp:"Subtract 2 from 6."},
+  {q:"I have 3 pencils. I buy 2 more pencils. How many pencils?", a:5, exp:"Add 3 and 2."},
+  {q:"There are 5 cookies. I eat 2 cookies. How many cookies are left?", a:3, exp:"Take away 2 from 5."},
+  {q:"I see 1 bird on a tree. 2 more birds come. How many birds?", a:3, exp:"Add 1 and 2."},
+  {q:"There are 4 shoes. 1 shoe is lost. How many shoes left?", a:3, exp:"Subtract 1 from 4."},
+
+  {q:"I have 2 candies. My mom gives me 2 more. How many candies?", a:4, exp:"Add 2 and 2."},
+  {q:"There are 7 fish. 1 fish swims away. How many fish are left?", a:6, exp:"Subtract 1 from 7."},
+  {q:"I have 5 fingers on one hand. How many fingers?", a:5, exp:"Count the fingers."},
+  {q:"There are 8 kids. 3 go home. How many kids are left?", a:5, exp:"Subtract 3 from 8."},
+  {q:"I see 3 balls and 1 more ball. How many balls?", a:4, exp:"Add 3 and 1."}
+];
+
+
+
+
+let index=0,score=0,missed=[];
+const synth=speechSynthesis;
+
+function speak(t){synth.speak(new SpeechSynthesisUtterance(t))}
+
+/* INITIAL READ */
+speak("Welcome, Ulaebuchukwu Erinne! Listen carefully. Each question will be read aloud with instructions and explanations. Type your answer in the box and submit.");
+
+/* NAVIGATION */
+function showTab(tab){
+ ["quizTab","analyticsTab","resultsTab"].forEach(t=>document.getElementById(t).classList.add("hidden"));
+ document.getElementById(tab).classList.remove("hidden");
+}
+
+/* LOAD QUESTION */
+function loadQuestion(){
+ questionText.textContent=questions[index].q;
+ readQuestion();
+}
+
+/* READ QUESTION ALOUD */
+function readQuestion(){
+ const q=questions[index];
+ speak(`Solve this question: ${q.q}. Explanation: ${q.exp}`);
+}
+
+/* SUBMIT ANSWER */
+function submitAnswer(){
+ const val=Number(answer.value);
+ if(val===questions[index].a){
+  score++;
+  feedback.textContent="Correct!";
+ }else{
+  missed.push({q:questions[index].q,correct:questions[index].a});
+  feedback.textContent=`Incorrect. Correct answer: ${questions[index].a}`;
+ }
+ answer.value="";
+ index++;
+ if(index<questions.length){
+  setTimeout(()=>{feedback.textContent="";loadQuestion()},900);
+ }else endQuiz();
+}
+
+/* END QUIZ */
+function endQuiz(){
+ const pct=Math.round(score/questions.length*100);
+ scoreBox.textContent=`Score: ${score}/${questions.length} (${pct}%)`;
+ scoreBox.classList.remove("hidden");
+
+ /* FIREBASE SAVE */
+ db.ref("results").push({
+  student:STUDENT_NAME,
+  type:"math",
+  score,
+  total:questions.length,
+  percentage:pct,
+  timestamp:Date.now(),
+  date:new Date().toLocaleString()
+ });
+
+ loadPreviousResults();
+ launchConfetti();
+}
+
+/* RETAKE */
+function retakeQuiz(){
+ index=0;score=0;missed=[];
+ scoreBox.classList.add("hidden");
+ feedback.textContent="";
+ showTab("quizTab");
+ loadQuestion();
+}
+
+/* LOAD PREVIOUS RESULTS */
+function loadPreviousResults(){
+ const list=document.getElementById("resultsList");
+ list.innerHTML="";
+ list.classList.remove("hidden");
+
+ db.ref("results").orderByChild("student").equalTo(STUDENT_NAME).once("value",snap=>{
+  const data=Object.values(snap.val()||{}).filter(r=>r.type==="math");
+  let sum=0,best=0;
+  data.forEach(r=>{
+   sum+=r.percentage;
+   best=Math.max(best,r.percentage);
+   const li=document.createElement("li");
+   li.textContent=`${r.date} – ${r.score}/${r.total} (${r.percentage}%)`;
+   list.appendChild(li);
+  });
+  totalAttempts.textContent=data.length;
+  bestScore.textContent=best+"%";
+  avgScore.textContent=data.length?Math.round(sum/data.length)+"%":"0%";
+ });
+}
+
+/* CONFETTI */
+function launchConfetti(){
+ const c=confettiCanvas,ctx=c.getContext("2d");
+ c.width=innerWidth;c.height=innerHeight;
+ c.classList.remove("hidden");
+ const p=[...Array(200)].map(()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:5,d:2+Math.random()*3,color:`hsl(${Math.random()*360},100%,50%)`}));
+ setInterval(()=>{ctx.clearRect(0,0,c.width,c.height);p.forEach(o=>{ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,2*Math.PI);ctx.fillStyle=o.color;ctx.fill();o.y+=o.d;if(o.y>c.height)o.y=0})},20);
+}
+
+/* INITIAL LOAD */
+loadQuestion();
+</script>
+
+</body>
+</html>
