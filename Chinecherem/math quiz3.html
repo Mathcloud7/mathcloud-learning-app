@@ -195,37 +195,37 @@ const db = firebase.database();
 
 /* QUESTIONS */
 const questions = [
- {q:"The perimeter of a rectangle is 24 cm. The length is 7 cm. What is the width?", a:5, exp:"Perimeter = 2(length + width). So, 24 = 2(7 + width). Solve for width."},
- {q:"A square has a side length of 9 m. What is its perimeter?", a:36, exp:"Perimeter of a square = 4 × side. 4 × 9 = 36."},
- {q:"The area of a rectangle is 48 m². Length is 8 m. What is the width?", a:6, exp:"Area = length × width. 48 ÷ 8 = 6."},
- {q:"A triangle has a base of 6 cm and height 4 cm. What is the area?", a:12, exp:"Area = 1/2 × base × height. 1/2 × 6 × 4 = 12."},
- {q:"A rectangle has length 10 m and width 5 m. What is the area?", a:50, exp:"Area = length × width. 10 × 5 = 50."},
- {q:"A square has an area of 49 cm². What is the side length?", a:7, exp:"Side = √area. √49 = 7."},
- {q:"The perimeter of a square is 40 cm. What is the side length?", a:10, exp:"Side = perimeter ÷ 4. 40 ÷ 4 = 10."},
- {q:"A rectangle has a perimeter of 30 m. Length is 8 m. Find the width.", a:7, exp:"Perimeter = 2(length + width). 30 = 2(8 + width). Solve for width."},
- {q:"A triangle has sides 5 cm, 6 cm, and 7 cm. What is the perimeter?", a:18, exp:"Perimeter = sum of all sides. 5 + 6 + 7 = 18."},
- {q:"A room is 12 m long and 10 m wide. How many square meters is the floor?", a:120, exp:"Area = length × width. 12 × 10 = 120."},
- {q:"The length of a rectangle is 15 m and width is 6 m. What is the perimeter?", a:42, exp:"Perimeter = 2(length + width). 2(15+6)=42."},
- {q:"A garden has an area of 64 m². It is square. Find the side length.", a:8, exp:"Side = √area. √64 = 8."},
- {q:"A triangle has base 9 m and height 5 m. What is the area?", a:22, exp:"Area = 1/2 × base × height. 1/2 × 9 × 5 = 22.5, rounded to 22 (whole number)."},
- {q:"A rectangular playground is 20 m by 15 m. What is the perimeter?", a:70, exp:"Perimeter = 2(length + width). 2(20+15)=70."},
- {q:"The area of a square is 36 m². Find the perimeter.", a:24, exp:"Side = √36 = 6. Perimeter = 4 × 6 = 24."},
- {q:"A rectangle has length 14 m and width 6 m. Find the area.", a:84, exp:"Area = length × width. 14 × 6 = 84."},
- {q:"A triangle has sides 7 cm, 8 cm, and 9 cm. What is the perimeter?", a:24, exp:"Perimeter = sum of sides. 7 + 8 + 9 = 24."},
- {q:"A square has a side length of 12 cm. What is the area?", a:144, exp:"Area = side × side. 12 × 12 = 144."},
- {q:"A rectangle is 18 m long and 10 m wide. What is the perimeter?", a:56, exp:"Perimeter = 2(length + width). 2(18+10)=56."},
- {q:"A triangle has base 10 m and height 6 m. Find the area.", a:30, exp:"Area = 1/2 × base × height. 1/2 × 10 × 6 = 30."},
- {q:"A rectangle is 25 m long and 5 m wide. Find the area.", a:125, exp:"Area = length × width. 25 × 5 = 125."},
- {q:"A square has a perimeter of 48 m. Find the side length.", a:12, exp:"Side = perimeter ÷ 4. 48 ÷ 4 = 12."},
- {q:"The length of a rectangle is 9 m and width is 7 m. Find the perimeter.", a:32, exp:"Perimeter = 2(length + width). 2(9+7)=32."},
- {q:"A triangle has sides 10 cm, 12 cm, and 14 cm. Find the perimeter.", a:36, exp:"Perimeter = 10+12+14=36."},
- {q:"A square has an area of 81 cm². Find the side length.", a:9, exp:"Side = √81 = 9."},
- {q:"The floor of a room is 8 m by 7 m. Find the area.", a:56, exp:"Area = length × width. 8 × 7 = 56."},
- {q:"A rectangle is 30 m long and 5 m wide. Find the perimeter.", a:70, exp:"Perimeter = 2(length + width). 2(30+5)=70."},
- {q:"A triangle has base 12 m and height 5 m. Find the area.", a:30, exp:"Area = 1/2 × base × height. 1/2 × 12 × 5 = 30."},
- {q:"A square has a side length of 15 m. Find the perimeter.", a:60, exp:"Perimeter = 4 × side. 4 × 15 = 60."},
- {q:"A rectangle is 16 m long and 9 m wide. Find the area.", a:144, exp:"Area = length × width. 16 × 9 = 144."},
- {q:"A triangle has sides 6 cm, 8 cm, and 10 cm. Find the perimeter.", a:24, exp:"Perimeter = 6+8+10=24."}
+ {q:"The perimeter of a rectangle is 24 cm. The length is 7 cm. What is the width?", exp:"Perimeter = 2(length + width). Solve for width."},
+ {q:"A square has a side length of 9 m. What is its perimeter?", exp:"Perimeter of a square = 4 × side."},
+ {q:"The area of a rectangle is 48 m². Length is 8 m. What is the width?", exp:"Area = length × width. Solve for width."},
+ {q:"A triangle has a base of 6 cm and height 4 cm. What is the area?", exp:"Area = 1/2 × base × height."},
+ {q:"A rectangle has length 10 m and width 5 m. What is the area?", exp:"Area = length × width."},
+ {q:"A square has an area of 49 cm². What is the side length?", exp:"Side = √area."},
+ {q:"The perimeter of a square is 40 cm. What is the side length?", exp:"Side = perimeter ÷ 4."},
+ {q:"A rectangle has a perimeter of 30 m. Length is 8 m. Find the width.", exp:"Perimeter = 2(length + width). Solve for width."},
+ {q:"A triangle has sides 5 cm, 6 cm, and 7 cm. What is the perimeter?", exp:"Perimeter = sum of all sides."},
+ {q:"A room is 12 m long and 10 m wide. How many square meters is the floor?", exp:"Area = length × width."},
+ {q:"The length of a rectangle is 15 m and width is 6 m. What is the perimeter?", exp:"Perimeter = 2(length + width)."},
+ {q:"A garden has an area of 64 m². It is square. Find the side length.", exp:"Side = √area."},
+ {q:"A triangle has base 9 m and height 5 m. What is the area?", exp:"Area = 1/2 × base × height."},
+ {q:"A rectangular playground is 20 m by 15 m. What is the perimeter?", exp:"Perimeter = 2(length + width)."},
+ {q:"The area of a square is 36 m². Find the perimeter.", exp:"Side = √area. Perimeter = 4 × side."},
+ {q:"A rectangle has length 14 m and width 6 m. Find the area.", exp:"Area = length × width."},
+ {q:"A triangle has sides 7 cm, 8 cm, and 9 cm. What is the perimeter?", exp:"Perimeter = sum of sides."},
+ {q:"A square has a side length of 12 cm. What is the area?", exp:"Area = side × side."},
+ {q:"A rectangle is 18 m long and 10 m wide. What is the perimeter?", exp:"Perimeter = 2(length + width)."},
+ {q:"A triangle has base 10 m and height 6 m. Find the area.", exp:"Area = 1/2 × base × height."},
+ {q:"A rectangle is 25 m long and 5 m wide. Find the area.", exp:"Area = length × width."},
+ {q:"A square has a perimeter of 48 m. Find the side length.", exp:"Side = perimeter ÷ 4."},
+ {q:"The length of a rectangle is 9 m and width is 7 m. Find the perimeter.", exp:"Perimeter = 2(length + width)."},
+ {q:"A triangle has sides 10 cm, 12 cm, and 14 cm. Find the perimeter.", exp:"Perimeter = sum of sides."},
+ {q:"A square has an area of 81 cm². Find the side length.", exp:"Side = √area."},
+ {q:"The floor of a room is 8 m by 7 m. Find the area.", exp:"Area = length × width."},
+ {q:"A rectangle is 30 m long and 5 m wide. Find the perimeter.", exp:"Perimeter = 2(length + width)."},
+ {q:"A triangle has base 12 m and height 5 m. Find the area.", exp:"Area = 1/2 × base × height."},
+ {q:"A square has a side length of 15 m. Find the perimeter.", exp:"Perimeter = 4 × side."},
+ {q:"A rectangle is 16 m long and 9 m wide. Find the area.", exp:"Area = length × width."},
+ {q:"A triangle has sides 6 cm, 8 cm, and 10 cm. Find the perimeter.", exp:"Perimeter = sum of sides."}
 ];
 
 
@@ -340,3 +340,4 @@ loadQuestion();
 
 </body>
 </html>
+
