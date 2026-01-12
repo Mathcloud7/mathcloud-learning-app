@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MathCloud Reading Fluency</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:"Segoe UI",system-ui;
+  background:linear-gradient(180deg,#eef2ff,#ffffff)
+}
+header{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  padding:22px;
+}
+header img{height:48px}
+.container{max-width:980px;margin:auto;padding:16px}
+.card{
+  background:#ffffff;
+  padding:20px;
+  border-radius:20px;
+  box-shadow:0 12px 28px rgba(0,0,0,.1);
+  margin-bottom:20px
+}
+button,select{
+  width:100%;
+  padding:16px;
+  font-size:17px;
+  border-radius:14px;
+  margin-bottom:12px;
+  font-weight:800;
+  border:none;
+  cursor:pointer
+}
+#start{background:#2563eb;color:white}
+#finish{background:#22c55e;color:white}
+#readAloud{background:#f59e0b;color:white}
+#finish:disabled{opacity:.5}
+
+.passage{
+  font-size:22px;
+  line-height:2;
+  background:#fff7ed;
+  border:3px dashed #fde68a;
+  padding:22px;
+  border-radius:20px
+}
+.word.active{background:#fde047}
+
+.results,.summary{
+  background:#f0fdf4;
+  border-radius:20px;
+  padding:20px
+}
+.score-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:12px;
+  text-align:center
+}
+.record{
+  background:white;
+  padding:14px;
+  border-radius:14px;
+  margin-bottom:10px
+}
+.best{border:3px solid #22c55e;background:#ecfdf5}
+.student-badge{
+  background:#eef2ff;
+  padding:14px;
+  border-radius:16px;
+  font-weight:700;
+  text-align:center
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <img src="logo.png" alt="MathCloud Logo">
+  <h2>MathCloud Reading Fluency</h2>
+</header>
+
+<div class="container">
+
+<div class="card student-badge">
+  Student: <b>Demo Student</b> | Class: <b>Grade 4</b>
+</div>
+
+<div class="card">
+  <select id="passageSelect"></select>
+  <button id="readAloud">🔊 Listen to Instructions & Passage</button>
+  <button id="start">🎤 Start Reading</button>
+</div>
+
+<div class="card passage" id="passage"></div>
+<button id="finish" disabled>✅ Finish Reading</button>
+
+<div class="card results" id="results"></div>
+<div class="card summary" id="summary"></div>
+
+<div class="card">
+  <h3>📊 Teacher Dashboard (Selected Passage)</h3>
+  <div id="dashboard"></div>
+</div>
+
+</div>
+
+<audio id="bgAudio" src="background.mp3" loop></audio>
+
+<script>
+/* ================= FIREBASE ================= */
+firebase.initializeApp({
+  apiKey:"AIzaSyCNQbqTQvKwrtpbGXHgu56hbAVaKgIQ7nc",
+  authDomain:"mathcloud-72a42.firebaseapp.com",
+  databaseURL:"https://mathcloud-72a42-default-rtdb.firebaseio.com",
+  projectId:"mathcloud-72a42"
+});
+const db=firebase.database();
+
+/* ================= CONSTANT STUDENT ================= */
+const STUDENT_NAME="Demo Student";
+const STUDENT_CLASS="Grade 4";
+
+/* ================= PASSAGES ================= */
+const passages = {
+  p1: `Every Saturday morning, Amina went to the market with her mother. The market was always busy with people buying food and clothes. Amina liked to help her mother choose fresh fruits and vegetables. After shopping, they often stopped to greet friends before going home.`,
+
+  p2: `On his way to school, Daniel found a small brown puppy under a tree. The puppy looked hungry and tired. Daniel shared his bread with the puppy and promised to tell his parents. He felt happy knowing he had helped an animal in need.`,
+
+  p3: `Rain fell gently on the village roofs during the night. In the morning, the roads were wet and shiny. Children put on their rain boots and carefully walked to school. The farmers were glad because the rain helped their crops grow.`,
+
+  p4: `Fatima loved reading books in the school library. The room was quiet and filled with colorful shelves. Every book took her to a new place full of adventure. Reading helped her learn new words and ideas every day.`,
+
+  p5: `One afternoon, the electricity went out in the neighborhood. Families sat outside and talked together. Children played games and laughed loudly. Even without television, everyone enjoyed spending time with one another.`,
+
+  p6: `The school organized a clean-up day for the community. Pupils picked up litter and swept the playground. Teachers showed them how to keep their environment clean. At the end of the day, the school looked neat and beautiful.`,
+
+  p7: `Musa planted a small mango tree behind his house. Every day, he watered it and watched it grow. After many months, the tree grew strong and tall. Musa felt proud because his patience had paid off.`,
+
+  p8: `During the holiday, Ngozi visited her grandmother in the village. Her grandmother told stories about life long ago. They cooked meals together and shared laughs. Ngozi learned many lessons from her grandmother’s stories.`,
+
+  p9: `The football match between the two schools was exciting. Players ran fast and passed the ball carefully. The crowd cheered loudly when a goal was scored. In the end, both teams shook hands and showed good sportsmanship.`,
+
+  p10: `Early one morning, the sun rose brightly over the town. Birds sang from the trees, and people began their day. Shop owners opened their stores, and children prepared for school. It was the start of a fresh and hopeful day.`
+};
+
+const passageSelect=document.getElementById("passageSelect");
+Object.keys(passages).forEach(id=>{
+  const o=document.createElement("option");
+  o.value=id;
+  o.textContent="Passage "+id.toUpperCase();
+  passageSelect.appendChild(o);
+});
+
+/* ================= PASSAGE LOAD ================= */
+let words=[];
+let sentences=[];
+const passage=document.getElementById("passage");
+
+function loadPassage(){
+  sentences=passages[passageSelect.value].match(/[^.!?]+[.!?]/g);
+  words=passages[passageSelect.value].split(/\s+/);
+  passage.innerHTML=words.map(w=>`<span class="word">${w}</span>`).join(" ");
+  renderDashboard();
+}
+passageSelect.onchange=loadPassage;
+loadPassage();
+
+/* ================= MICROPHONE PERMISSION ================= */
+let micGranted=false;
+async function checkMic(){
+  if(micGranted) return true;
+  try{
+    await navigator.mediaDevices.getUserMedia({audio:true});
+    micGranted=true;
+    return true;
+  }catch{
+    speechSynthesis.speak(new SpeechSynthesisUtterance(
+      "Microphone access is required to continue."
+    ));
+    return false;
+  }
+}
+
+/* ================= READ ALOUD ================= */
+function speak(text,cb){
+  const u=new SpeechSynthesisUtterance(text);
+  if(cb)u.onend=cb;
+  speechSynthesis.speak(u);
+}
+
+readAloud.onclick=()=>{
+  speechSynthesis.cancel();
+  speak(
+    `Hello ${STUDENT_NAME}. Please listen carefully. Read the passage aloud clearly when you are ready.`,
+    ()=> speak(passages[passageSelect.value])
+  );
+};
+
+/* ================= SPEECH RECOGNITION ================= */
+const bgAudio=document.getElementById("bgAudio");
+bgAudio.volume=0.05;
+let recognition,transcript="",startTime,active=false;
+
+start.onclick=async()=>{
+  if(!await checkMic()) return;
+
+  transcript="";
+  active=true;
+  startTime=Date.now();
+  finish.disabled=false;
+  results.innerHTML="";
+  document.querySelectorAll(".word").forEach(w=>w.classList.remove("active"));
+  bgAudio.play();
+
+  recognition=new webkitSpeechRecognition();
+  recognition.lang="en-US";
+  recognition.continuous=true;
+
+  recognition.onresult=e=>{
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal){
+        transcript+=" "+e.results[i][0].transcript;
+        document.querySelectorAll(".word")[document.querySelectorAll(".word.active").length]
+          ?.classList.add("active");
+      }
+    }
+  };
+  recognition.start();
+};
+
+finish.onclick=()=>{
+  if(!active)return;
+  active=false;
+  recognition.stop();
+  finish.disabled=true;
+  bgAudio.pause();
+  bgAudio.currentTime=0;
+  calculateScores();
+};
+
+/* ================= PERFORMANCE FEEDBACK ================= */
+function feedback(total){
+  const messages=[
+    [95,"Outstanding reading! Excellent fluency."],
+    [90,"Excellent work. Very confident reading."],
+    [85,"Great job. Keep improving."],
+    [80,"Very good effort."],
+    [75,"Good reading. Practice a little more."],
+    [70,"Fair attempt. You are improving."],
+    [65,"Nice try. Keep practicing."],
+    [60,"You can do better with practice."],
+    [50,"Keep trying. Focus on accuracy."],
+    [0,"Do not give up. We will improve together."]
+  ];
+  return messages.find(m=>total>=m[0])[1];
+}
+
+/* ================= SCORING ================= */
+function getAttemptNumber(pid,cb){
+  db.ref("scores").orderByChild("name").equalTo(STUDENT_NAME)
+    .once("value",s=>{
+      let c=0;
+      s.forEach(r=>{if(r.val().passageId===pid)c++;});
+      cb(c+1);
+    });
+}
+
+function calculateScores(){
+  const spoken=transcript.toLowerCase().split(/\s+/);
+  const expected=words.map(w=>w.toLowerCase());
+  let matched=0;
+  spoken.forEach(w=>{if(expected.includes(w))matched++;});
+
+  const time=(Date.now()-startTime)/1000;
+  const wpm=Math.max(10,Math.round(spoken.length/time*60));
+  const accuracy=Math.round(matched/expected.length*100);
+  const total=Math.round(accuracy*.5+Math.min(100,wpm/2)*.3+(spoken.length/expected.length*100)*.2);
+
+  speak(`Thank you ${STUDENT_NAME}. ${feedback(total)}`);
+
+  getAttemptNumber(passageSelect.value,a=>{
+    db.ref("scores").push({
+      name:STUDENT_NAME,class:STUDENT_CLASS,
+      passageId:passageSelect.value,
+      attempt:a,wpm,accuracy,total,
+      date:new Date().toLocaleString()
+    });
+    results.innerHTML=`
+      <div class="score-grid">
+        <div>Attempt<br><b>${a}</b></div>
+        <div>WPM<br><b>${wpm}</b></div>
+        <div>Accuracy<br><b>${accuracy}%</b></div>
+        <div>Total<br><b>${total}%</b></div>
+      </div>`;
+    renderDashboard();
+  });
+}
+
+/* ================= TEACHER DASHBOARD ================= */
+function renderDashboard(){
+  db.ref("scores").once("value",s=>{
+    dashboard.innerHTML="";
+    summary.innerHTML="";
+    let data=[];
+    s.forEach(r=>{
+      const d=r.val();
+      if(d.name===STUDENT_NAME && d.passageId===passageSelect.value){
+        data.push(d);
+      }
+    });
+    if(!data.length)return;
+    const avg=k=>Math.round(data.reduce((a,b)=>a+b[k],0)/data.length);
+    summary.innerHTML=`
+      <h3>📈 Passage Analysis</h3>
+      Attempts: <b>${data.length}</b><br>
+      Avg WPM: <b>${avg("wpm")}</b><br>
+      Avg Accuracy: <b>${avg("accuracy")}%</b><br>
+      Avg Total: <b>${avg("total")}%</b>`;
+    const best=Math.max(...data.map(d=>d.total));
+    data.forEach(d=>{
+      dashboard.innerHTML+=`
+        <div class="record ${d.total===best?"best":""}">
+          Attempt ${d.attempt} ${d.total===best?"🏆 BEST":""}<br>
+          WPM: ${d.wpm} | Accuracy: ${d.accuracy}% | Total: ${d.total}%
+        </div>`;
+    });
+  });
+}
+renderDashboard();
+</script>
+
+</body>
+</html>
