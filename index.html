@@ -1,1 +1,143 @@
-Loading...
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Structured Phonics Program</title>
+
+<style>
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f5f8ff;
+  text-align: center;
+  padding: 20px;
+}
+
+h1 { font-size: 36px; }
+h2 { margin-top: 25px; }
+
+button {
+  font-size: 26px;
+  width: 90px;
+  height: 90px;
+  margin: 8px;
+  border-radius: 15px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover { background: #1e4ed8; }
+
+#word {
+  font-size: 48px;
+  margin: 20px;
+  min-height: 60px;
+}
+
+.control { background: #16a34a; }
+.clear { background: #dc2626; }
+.level { background: #9333ea; }
+
+.feedback {
+  font-size: 24px;
+  margin-top: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📘 Structured Phonics Program</h1>
+<p>Build a word. Blend sounds. Read the word.</p>
+
+<h2>Sounds</h2>
+
+<!-- CONSONANTS -->
+<button onclick="add('b')">B</button>
+<button onclick="add('c')">C</button>
+<button onclick="add('t')">T</button>
+<button onclick="add('m')">M</button>
+<button onclick="add('s')">S</button>
+<button onclick="add('l')">L</button>
+<button onclick="add('r')">R</button>
+<button onclick="add('n')">N</button>
+
+<!-- VOWELS -->
+<br>
+<button onclick="add('a')">A</button>
+<button onclick="add('e')">E</button>
+<button onclick="add('i')">I</button>
+<button onclick="add('o')">O</button>
+<button onclick="add('u')">U</button>
+
+<!-- DIGRAPHS -->
+<br>
+<button onclick="add('sh')">SH</button>
+<button onclick="add('ch')">CH</button>
+<button onclick="add('th')">TH</button>
+
+<div id="word"></div>
+
+<h2>Controls</h2>
+<button class="control" onclick="blend()">BLEND</button>
+<button class="clear" onclick="reset()">CLEAR</button>
+
+<div class="feedback" id="feedback"></div>
+
+<script>
+let sounds = [];
+let maxLetters = 8;
+
+const realWords = [
+  "am","at","ma",
+  "cat","sit","mat","bat","man",
+  "stop","lamp","sand",
+  "snake","plane",
+  "chicken","shapes",
+  "sunlight","handmade"
+];
+
+function speak(text) {
+  let u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.6;
+  speechSynthesis.speak(u);
+}
+
+function add(sound) {
+  if (sounds.length < maxLetters) {
+    sounds.push(sound);
+    document.getElementById("word").innerText = sounds.join("").toUpperCase();
+    speak(sound);
+  }
+}
+
+function blend() {
+  let word = sounds.join("");
+  let delay = 0;
+
+  sounds.forEach(s => {
+    setTimeout(() => speak(s), delay);
+    delay += 700;
+  });
+
+  setTimeout(() => speak(word), delay + 300);
+
+  setTimeout(() => {
+    if (realWords.includes(word)) {
+      document.getElementById("feedback").innerText = "✅ Great reading!";
+    } else {
+      document.getElementById("feedback").innerText = "🔁 Try another word";
+    }
+  }, delay + 900);
+}
+
+function reset() {
+  sounds = [];
+  document.getElementById("word").innerText = "";
+  document.getElementById("feedback").innerText = "";
+}
+</script>
+
+</body>
+</html>
