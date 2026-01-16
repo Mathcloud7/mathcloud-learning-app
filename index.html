@@ -5,22 +5,44 @@
 <title>Structured Phonics Program</title>
 
 <style>
+* { box-sizing: border-box; }
+
 body {
   font-family: "Segoe UI", Arial, sans-serif;
   background: #f5f8ff;
   text-align: center;
-  padding: 20px;
+  padding: 16px;
+  margin: 0;
 }
 
-h1 { font-size: 36px; }
-h2 { margin-top: 25px; }
+h1 { font-size: clamp(24px, 5vw, 36px); }
+h2 { margin-top: 20px; font-size: clamp(18px, 4vw, 26px); }
+
+#word {
+  font-size: clamp(32px, 6vw, 48px);
+  margin: 20px 0;
+  min-height: 60px;
+  letter-spacing: 5px;
+}
+
+.feedback {
+  font-size: clamp(18px, 4vw, 24px);
+  margin-top: 15px;
+}
+
+/* Grid layout for buttons */
+.sound-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 10px;
+  max-width: 700px;
+  margin: 0 auto 20px;
+}
 
 button {
-  font-size: 26px;
-  width: 90px;
-  height: 90px;
-  margin: 8px;
-  border-radius: 15px;
+  font-size: clamp(18px, 4vw, 26px);
+  height: 70px;
+  border-radius: 14px;
   border: none;
   background: #2563eb;
   color: white;
@@ -29,19 +51,15 @@ button {
 
 button:hover { background: #1e4ed8; }
 
-#word {
-  font-size: 48px;
-  margin: 20px;
-  min-height: 60px;
-}
+button.control { background: #16a34a; }
+button.clear { background: #dc2626; }
 
-.control { background: #16a34a; }
-.clear { background: #dc2626; }
-.level { background: #9333ea; }
-
-.feedback {
-  font-size: 24px;
-  margin-top: 15px;
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 </style>
 </head>
@@ -51,37 +69,59 @@ button:hover { background: #1e4ed8; }
 <h1>📘 Structured Phonics Program</h1>
 <p>Build a word. Blend sounds. Read the word.</p>
 
-<h2>Sounds</h2>
+<h2>Consonants</h2>
+<div class="sound-grid">
+  <button onclick="add('b')">B</button>
+  <button onclick="add('c')">C</button>
+  <button onclick="add('d')">D</button>
+  <button onclick="add('f')">F</button>
+  <button onclick="add('g')">G</button>
+  <button onclick="add('h')">H</button>
+  <button onclick="add('j')">J</button>
+  <button onclick="add('k')">K</button>
+  <button onclick="add('l')">L</button>
+  <button onclick="add('m')">M</button>
+  <button onclick="add('n')">N</button>
+  <button onclick="add('p')">P</button>
+  <button onclick="add('r')">R</button>
+  <button onclick="add('s')">S</button>
+  <button onclick="add('t')">T</button>
+  <button onclick="add('v')">V</button>
+  <button onclick="add('w')">W</button>
+  <button onclick="add('y')">Y</button>
+  <button onclick="add('z')">Z</button>
+</div>
 
-<!-- CONSONANTS -->
-<button onclick="add('b')">B</button>
-<button onclick="add('c')">C</button>
-<button onclick="add('t')">T</button>
-<button onclick="add('m')">M</button>
-<button onclick="add('s')">S</button>
-<button onclick="add('l')">L</button>
-<button onclick="add('r')">R</button>
-<button onclick="add('n')">N</button>
+<h2>Vowels</h2>
+<div class="sound-grid">
+  <button onclick="add('a')">A</button>
+  <button onclick="add('e')">E</button>
+  <button onclick="add('i')">I</button>
+  <button onclick="add('o')">O</button>
+  <button onclick="add('u')">U</button>
+  <button onclick="add('ae')">AE</button>
+  <button onclick="add('ai')">AI</button>
+  <button onclick="add('ee')">EE</button>
+  <button onclick="add('oa')">OA</button>
+  <button onclick="add('oo')">OO</button>
+</div>
 
-<!-- VOWELS -->
-<br>
-<button onclick="add('a')">A</button>
-<button onclick="add('e')">E</button>
-<button onclick="add('i')">I</button>
-<button onclick="add('o')">O</button>
-<button onclick="add('u')">U</button>
-
-<!-- DIGRAPHS -->
-<br>
-<button onclick="add('sh')">SH</button>
-<button onclick="add('ch')">CH</button>
-<button onclick="add('th')">TH</button>
+<h2>Digraphs</h2>
+<div class="sound-grid">
+  <button onclick="add('sh')">SH</button>
+  <button onclick="add('ch')">CH</button>
+  <button onclick="add('th')">TH</button>
+  <button onclick="add('wh')">WH</button>
+  <button onclick="add('ck')">CK</button>
+</div>
 
 <div id="word"></div>
 
 <h2>Controls</h2>
-<button class="control" onclick="blend()">BLEND</button>
-<button class="clear" onclick="reset()">CLEAR</button>
+<div class="controls">
+  <button class="control" onclick="blend()">BLEND</button>
+  <button class="clear" onclick="reset()">CLEAR</button>
+</div>
 
 <div class="feedback" id="feedback"></div>
 
@@ -93,7 +133,7 @@ const realWords = [
   "am","at","ma",
   "cat","sit","mat","bat","man",
   "stop","lamp","sand",
-  "snake","plane",
+  "snake","plane","boat",
   "chicken","shapes",
   "sunlight","handmade"
 ];
@@ -124,11 +164,10 @@ function blend() {
   setTimeout(() => speak(word), delay + 300);
 
   setTimeout(() => {
-    if (realWords.includes(word)) {
-      document.getElementById("feedback").innerText = "✅ Great reading!";
-    } else {
-      document.getElementById("feedback").innerText = "🔁 Try another word";
-    }
+    document.getElementById("feedback").innerText =
+      realWords.includes(word)
+        ? "✅ Great reading!"
+        : "🔁 Try another word";
   }, delay + 900);
 }
 
